@@ -1,0 +1,110 @@
+---
+title: "WarsawStockExchangeAnalysis"
+output: html_notebook
+---
+
+```{r}
+# Wczytanie niezbędnych pakietów
+require(tidyverse)
+
+# Wczytanie i uporządkowanie danych
+read_data <- function(csv_file) {
+  data <- read_csv(csv_file) %>% 
+    mutate(Year = year(Data)) %>% 
+    select(Year, Open = Otwarcie, Close = Zamkniecie) %>%
+    arrange(Year)
+}
+
+wig_df <- read_data("wig_y.csv")
+fund3401_df <- read_data("3401_n_y.csv")
+fund4438_df <- read_data("4438_n_y.csv")
+fund4502_df <- read_data("4502_n_y.csv")
+```
+
+```{r}
+# Funkcja do obliczenia logarytmicznych rocznych stóp zwrotu
+calculate_annual_log_returns <- function(df) {
+  df %>%
+    mutate(ReturnRate = log(Close / Open)) %>%
+    select(Year, ReturnRate)
+}
+
+# Obliczenie logarytmicznych stóp zwrotu dla wskaźnika WIG oraz funduszy inwestycyjnych
+wig_lr_df <- calculate_annual_log_returns(wig_df)
+fund3401_lr_df <- calculate_annual_log_returns(fund3401_df)
+fund4438_lr_df <- calculate_annual_log_returns(fund4438_df)
+fund4502_lr_df <- calculate_annual_log_returns(fund4502_df)
+```
+
+```{r}
+# Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
+get_stats_for_period <- function(instrument, lr_df, years) {
+  # Maksymalny dostępny rok
+  max_year <- max(lr_df$Year)
+
+  # Wybranie ostatnich 'n' lat
+  selected_df <- lr_df %>%
+    filter(Year > (max_year - years))
+
+  # Obliczenie statystyk
+  cumulative_rr <- sum(selected_df$ReturnRate, na.rm = TRUE)
+  rr_mean <- mean(selected_df$ReturnRate, na.rm = TRUE)
+  rr_sd <- sd(selected_df$ReturnRate, na.rm = TRUE)
+
+  # Zwracanie jako tibble
+  tibble(
+    Instrument = instrument,
+    Years = as.factor(years),
+    CumulativeReturnRate = round(cumulative_rr, 4),
+    AnnualReturnRateAvg = round(rr_mean, 4),
+    AnnualReturnRateSd = round(rr_sd, 4)
+  )
+}
+
+periods <- c(3, 5, 10)
+instruments <- c("WIG", "3401.N", "4438.N", "4502.N")
+wig_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[1], wig_lr_df, .x))
+fund3401_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund3401_lr_df, .x))
+fund4438_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund4438_lr_df, .x))
+fund4502_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund4502_lr_df, .x))
+
+all_instruments_stats_df <- bind_rows(wig_stats_df, fund3401_stats_df, fund4438_stats_df, fund4502_stats_df)
+all_instruments_stats_df <- all_instruments_stats_df %>%
+  mutate(Instrument = factor(Instrument, levels = instruments))
+```
+
+```{r}
+# Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
+visualize_all_instruments_stats_chart <- function(y_param, title, y_lab) {
+  ggplot(all_instruments_stats_df, aes(x = Instrument, y = y_param, fill = Years)) +
+    geom_col(position = "dodge") +
+    labs(
+      title = title,
+      x = NULL,
+      y = y_lab,
+      fill = "Okres inwestycji"
+    ) +
+    scale_fill_manual(
+      values = c(
+        "3" = "#2E75B6",
+        "5" = "#C55A11",
+        "10" = "#A5A5A5"
+      ),
+      labels = c("3 lata", "5 lat", "10 lat")
+    ) +
+    theme_light() +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))
+}
+```
+
+```{r}
+visualize_all_instruments_stats_chart(all_instruments_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu za dany okres", "Skumulowana stopa zwrotu")
+```
+
+```{r}
+visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateAvg, "Średnia roczna stopa zwrotu za dany okres", "Średnia roczna stopa zwrotu")
+```
+
+```{r}
+visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu za dany okres", "Odchylenie standardowe")
+```

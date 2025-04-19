@@ -1,0 +1,7 @@
+Informacja o danych:
+
+Pliki:
+1. wig_y.csv - wartości historyczne dla indeksu WIG w okresie 2015 - 2024, zawierające podsumowanie roczne (pobrane z stooq.pl, https://stooq.pl/q/d/?f=20150101&t=20240101&s=wig&c=0&i=y)
+2. 3401_n_y.csv - wartości historyczne dla funduszu PKO Akcji Rynku Złota (3401.N) w okresie 2015 - 2024, zawierające podsumowanie roczne (pobrane z stooq.pl, https://stooq.pl/q/d/?f=20150101&t=20240101&s=3401.n&c=0&i=y)
+3. 4438_n_y.csv - wartości historyczne dla funduszu Allianz UFK NN Średnich i Małych Spółek (4438.N) w okresie 2015 - 2024, zawierające podsumowanie roczne (pobrane z stooq.pl, https://stooq.pl/q/d/?f=20150101&t=20240101&s=4438.n&c=0&i=y)
+3. 4502_n_y.csv - wartości historyczne dla funduszu Allianz UFK Skarbiec Małych i Średnich Spółek (4502.N) w okresie 2015 - 2024, zawierające podsumowanie roczne (pobrane z stooq.pl, https://stooq.pl/q/d/?f=20150101&t=20240101&s=4502.n&c=0&i=y)
