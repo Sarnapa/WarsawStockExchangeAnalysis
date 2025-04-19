@@ -22,51 +22,55 @@ fund4502_df <- read_data("4502_n_y.csv")
 ```
 
 ```{r}
-# Funkcja do obliczenia logarytmicznych rocznych stóp zwrotu
-calculate_annual_log_returns <- function(df) {
+# Funkcja do obliczenia rocznych stóp zwrotu
+calculate_annual_returns <- function(df) {
   df %>%
-    mutate(ReturnRate = log(Close / Open)) %>%
-    select(Year, ReturnRate)
+    mutate(ReturnRate = (Close / Open) - 1, ReturnLogRate = log(Close / Open)) %>%
+    select(Year, ReturnRate, ReturnLogRate)
 }
 
-# Obliczenie logarytmicznych stóp zwrotu dla wskaźnika WIG oraz funduszy inwestycyjnych
-wig_lr_df <- calculate_annual_log_returns(wig_df)
-fund3401_lr_df <- calculate_annual_log_returns(fund3401_df)
-fund4438_lr_df <- calculate_annual_log_returns(fund4438_df)
-fund4502_lr_df <- calculate_annual_log_returns(fund4502_df)
+# Obliczenie stóp zwrotu dla wskaźnika WIG oraz funduszy inwestycyjnych
+wig_ar_df <- calculate_annual_returns(wig_df)
+fund3401_ar_df <- calculate_annual_returns(fund3401_df)
+fund4438_ar_df <- calculate_annual_returns(fund4438_df)
+fund4502_ar_df <- calculate_annual_returns(fund4502_df)
 ```
 
 ```{r}
 # Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
-get_stats_for_period <- function(instrument, lr_df, years) {
+get_stats_for_period <- function(instrument, ar_df, years) {
   # Maksymalny dostępny rok
-  max_year <- max(lr_df$Year)
+  max_year <- max(ar_df$Year)
 
   # Wybranie ostatnich 'n' lat
-  selected_df <- lr_df %>%
+  selected_df <- ar_df %>%
     filter(Year > (max_year - years))
 
   # Obliczenie statystyk
-  cumulative_rr <- sum(selected_df$ReturnRate, na.rm = TRUE)
-  rr_mean <- mean(selected_df$ReturnRate, na.rm = TRUE)
-  rr_sd <- sd(selected_df$ReturnRate, na.rm = TRUE)
-
+  cumulative_rr <- exp(sum(selected_df$ReturnLogRate, na.rm = TRUE)) - 1
+  # TODO: Tutaj mam dylemat czy brac te logarytmiczna czy zwykla, generalnie na wykresach wyglądaja podobnie
+  rr_mean <- mean(selected_df$ReturnLogRate, na.rm = TRUE)
+  rr_sd <- sd(selected_df$ReturnLogRate, na.rm = TRUE)
+  # Współczynnik zmienności
+  cv <- rr_sd / rr_mean
+  
   # Zwracanie jako tibble
   tibble(
     Instrument = instrument,
     Years = as.factor(years),
     CumulativeReturnRate = round(cumulative_rr, 4),
     AnnualReturnRateAvg = round(rr_mean, 4),
-    AnnualReturnRateSd = round(rr_sd, 4)
+    AnnualReturnRateSd = round(rr_sd, 4),
+    CoefficientOfVariation = round(cv, 4)
   )
 }
 
 periods <- c(3, 5, 10)
 instruments <- c("WIG", "3401.N", "4438.N", "4502.N")
-wig_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[1], wig_lr_df, .x))
-fund3401_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund3401_lr_df, .x))
-fund4438_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund4438_lr_df, .x))
-fund4502_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund4502_lr_df, .x))
+wig_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[1], wig_ar_df, .x))
+fund3401_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund3401_ar_df, .x))
+fund4438_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund4438_ar_df, .x))
+fund4502_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund4502_ar_df, .x))
 
 all_instruments_stats_df <- bind_rows(wig_stats_df, fund3401_stats_df, fund4438_stats_df, fund4502_stats_df)
 all_instruments_stats_df <- all_instruments_stats_df %>%
@@ -74,7 +78,7 @@ all_instruments_stats_df <- all_instruments_stats_df %>%
 ```
 
 ```{r}
-# Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
+# Funkcja do wizualizacji wykresu, gdzie dla 3 okresów pokazujemy, jak się zmieniały dane statystyki dla dostarczonych instrumentów finansowych
 visualize_all_instruments_stats_chart <- function(y_param, title, y_lab) {
   ggplot(all_instruments_stats_df, aes(x = Instrument, y = y_param, fill = Years)) +
     geom_col(position = "dodge") +
@@ -107,4 +111,68 @@ visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateA
 
 ```{r}
 visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu za dany okres", "Odchylenie standardowe")
+```
+
+```{r}
+# Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność stopa zwrotu - odchylenie standardowe w konkretnym okresie dla dostarczonych instrumentów finansowych
+visualize_all_instruments_rr_sd_chart <- function(period) {
+  all_instruments_period_stats_df <- all_instruments_stats_df %>%
+    filter(Years == period)
+    ggplot(all_instruments_period_stats_df, aes(x = CumulativeReturnRate, y = AnnualReturnRateSd, label = Instrument)) + 
+    geom_point(size = 3, color = "#2E75B6") +
+    geom_text(vjust = -0.8, size = 4) +
+    labs(
+      title = paste("Zysk vs ryzyko – okres", period, "lat"),
+      x = "Skumulowana stopa zwrotu",
+      y = "Odchylenie standardowe"
+      ) +
+    scale_x_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    theme_light() +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))
+}
+```
+
+```{r}
+visualize_all_instruments_rr_sd_chart(periods[1])
+```
+
+```{r}
+visualize_all_instruments_rr_sd_chart(periods[2])
+```
+
+```{r}
+visualize_all_instruments_rr_sd_chart(periods[3])
+```
+
+```{r}
+# Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność odchylenie standardowe - współczynnik zmienności w konkretnym okresie dla dostarczonych instrumentów finansowych
+visualize_all_instruments_sd_cv_chart <- function(period) {
+  all_instruments_period_stats_df <- all_instruments_stats_df %>%
+    filter(Years == period)
+    ggplot(all_instruments_period_stats_df, aes(x = AnnualReturnRateSd, y = CoefficientOfVariation, label = Instrument)) + 
+    geom_point(size = 3, color = "#2E75B6") +
+    geom_text(vjust = -0.8, size = 4) +
+    labs(
+      title = paste("Współczynnik zmienności – okres", period, "lat"),
+      x = "Odchylenie standardowe",
+      y = "Współczynnik zmienności"
+      ) +
+    scale_x_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
+    theme_light() +
+    theme(plot.title = element_text(face = "bold", hjust = 0.5))
+}
+```
+
+```{r}
+visualize_all_instruments_sd_cv_chart(periods[1])
+```
+
+```{r}
+visualize_all_instruments_sd_cv_chart(periods[2])
+```
+
+```{r}
+visualize_all_instruments_sd_cv_chart(periods[3])
 ```
