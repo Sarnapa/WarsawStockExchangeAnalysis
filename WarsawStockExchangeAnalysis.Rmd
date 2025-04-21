@@ -16,9 +16,9 @@ read_data <- function(csv_file) {
 }
 
 wig_df <- read_data("wig_y.csv")
-fund3401_df <- read_data("3401_n_y.csv")
-fund4438_df <- read_data("4438_n_y.csv")
-fund4502_df <- read_data("4502_n_y.csv")
+fund1429_df <- read_data("1429_n_y.csv")
+fund1655_df <- read_data("1655_n_y.csv")
+fund2162_df <- read_data("2162_n_y.csv")
 ```
 
 ```{r}
@@ -31,9 +31,9 @@ calculate_annual_returns <- function(df) {
 
 # Obliczenie stóp zwrotu dla wskaźnika WIG oraz funduszy inwestycyjnych
 wig_ar_df <- calculate_annual_returns(wig_df)
-fund3401_ar_df <- calculate_annual_returns(fund3401_df)
-fund4438_ar_df <- calculate_annual_returns(fund4438_df)
-fund4502_ar_df <- calculate_annual_returns(fund4502_df)
+fund1429_ar_df <- calculate_annual_returns(fund1429_df)
+fund1655_ar_df <- calculate_annual_returns(fund1655_df)
+fund2162_ar_df <- calculate_annual_returns(fund2162_df)
 ```
 
 ```{r}
@@ -66,13 +66,13 @@ get_stats_for_period <- function(instrument, ar_df, years) {
 }
 
 periods <- c(3, 5, 10)
-instruments <- c("WIG", "3401.N", "4438.N", "4502.N")
+instruments <- c("WIG", "1429.N", "1655.N", "2162.N")
 wig_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[1], wig_ar_df, .x))
-fund3401_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund3401_ar_df, .x))
-fund4438_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund4438_ar_df, .x))
-fund4502_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund4502_ar_df, .x))
+fund1429_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund1429_ar_df, .x))
+fund1655_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund1655_ar_df, .x))
+fund2162_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund2162_ar_df, .x))
 
-all_instruments_stats_df <- bind_rows(wig_stats_df, fund3401_stats_df, fund4438_stats_df, fund4502_stats_df)
+all_instruments_stats_df <- bind_rows(wig_stats_df, fund1429_stats_df, fund1655_stats_df, fund2162_stats_df)
 all_instruments_stats_df <- all_instruments_stats_df %>%
   mutate(Instrument = factor(Instrument, levels = instruments))
 ```
