@@ -1,13 +1,16 @@
 ---
-title: "WarsawStockExchangeAnalysis"
-output: html_notebook
+title: "Nie warto inwestować na Warszawskiej Giełdzie Papierów Wartościowych"
+subtitle: "Jest to znacznie bardziej ryzykowne niż skorzystanie z usług funduszy inwestycyjnych"
+author: "Michał Piotrak, Jakub Proboszcz"
+date: "2023-03-16"
+output: xaringan::moon_reader
 ---
 
-```{r}
-# Wczytanie niezbędnych pakietów
+```{r, echo=FALSE, message=FALSE}
 require(tidyverse)
+```
 
-# Wczytanie i uporządkowanie danych
+```{r, echo=FALSE, message=FALSE}
 read_data <- function(csv_file) {
   data <- read_csv(csv_file) %>% 
     mutate(Year = year(Data)) %>% 
@@ -19,10 +22,7 @@ wig_df <- read_data("wig_y.csv")
 fund1429_df <- read_data("1429_n_y.csv")
 fund1655_df <- read_data("1655_n_y.csv")
 fund2162_df <- read_data("2162_n_y.csv")
-```
 
-```{r}
-# Funkcja do obliczenia rocznych stóp zwrotu
 calculate_annual_returns <- function(df) {
   df %>%
     mutate(ReturnRate = (Close / Open) - 1, ReturnLogRate = log(Close / Open)) %>%
@@ -34,9 +34,7 @@ wig_ar_df <- calculate_annual_returns(wig_df)
 fund1429_ar_df <- calculate_annual_returns(fund1429_df)
 fund1655_ar_df <- calculate_annual_returns(fund1655_df)
 fund2162_ar_df <- calculate_annual_returns(fund2162_df)
-```
 
-```{r}
 # Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
 get_stats_for_period <- function(instrument, ar_df, years) {
   # Maksymalny dostępny rok
@@ -75,9 +73,7 @@ fund2162_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund
 all_instruments_stats_df <- bind_rows(wig_stats_df, fund1429_stats_df, fund1655_stats_df, fund2162_stats_df)
 all_instruments_stats_df <- all_instruments_stats_df %>%
   mutate(Instrument = factor(Instrument, levels = instruments))
-```
 
-```{r}
 # Funkcja do wizualizacji wykresu, gdzie dla 3 okresów pokazujemy, jak się zmieniały dane statystyki dla dostarczonych instrumentów finansowych
 visualize_all_instruments_stats_chart <- function(y_param, title, y_lab) {
   ggplot(all_instruments_stats_df, aes(x = Instrument, y = y_param, fill = Years)) +
@@ -101,19 +97,24 @@ visualize_all_instruments_stats_chart <- function(y_param, title, y_lab) {
 }
 ```
 
-```{r}
+
+```{r, echo=FALSE}
 visualize_all_instruments_stats_chart(all_instruments_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu za dany okres", "Skumulowana stopa zwrotu")
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateAvg, "Średnia roczna stopa zwrotu za dany okres", "Średnia roczna stopa zwrotu")
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu za dany okres", "Odchylenie standardowe")
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność stopa zwrotu - odchylenie standardowe w konkretnym okresie dla dostarczonych instrumentów finansowych
 visualize_all_instruments_rr_sd_chart <- function(period) {
   all_instruments_period_stats_df <- all_instruments_stats_df %>%
@@ -133,19 +134,25 @@ visualize_all_instruments_rr_sd_chart <- function(period) {
 }
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_rr_sd_chart(periods[1])
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_rr_sd_chart(periods[2])
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_rr_sd_chart(periods[3])
 ```
 
-```{r}
+```{r, echo=FALSE}
 # Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność odchylenie standardowe - współczynnik zmienności w konkretnym okresie dla dostarczonych instrumentów finansowych
 visualize_all_instruments_sd_cv_chart <- function(period) {
   all_instruments_period_stats_df <- all_instruments_stats_df %>%
@@ -165,14 +172,20 @@ visualize_all_instruments_sd_cv_chart <- function(period) {
 }
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_sd_cv_chart(periods[1])
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_sd_cv_chart(periods[2])
 ```
 
-```{r}
+---
+
+```{r, echo=FALSE}
 visualize_all_instruments_sd_cv_chart(periods[3])
 ```
