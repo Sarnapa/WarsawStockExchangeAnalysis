@@ -1,21 +1,23 @@
 ---
-title: "Nie inwestuj na Warszawskiej Giełdzie Papierów Wartościowych"
-subtitle: "Unikaj nadmiernego ryzyka, skorzystaj z usług funduszy inwestycyjnych!"
+title: "Nie inwestuj bezpośrednio na Warszawskiej Giełdzie Papierów Wartościowych"
 author: "Michał Piotrak, Jakub Proboszcz"
 date: "2025-04-23"
 output: xaringan::moon_reader
+subtitle: Unikaj nadmiernego ryzyka, skorzystaj z usług funduszy inwestycyjnych!
 ---
-
 ```{css, echo = FALSE}
 body { font-family: 'Comic Sans', serif; }
 ```
-
-```{r, echo=FALSE, message=FALSE}
+```{r, echo = FALSE, message = FALSE}
 require(tidyverse)
 require(scales)
+# Do PDF
+#require(tinytex)
+# Do odkomentowania, jeśli musimy zainstalować
+#install_tinytex()
 ```
 
-```{r, echo=FALSE, message=FALSE}
+```{r, echo = FALSE, message = FALSE}
 read_data <- function(csv_file) {
   data <- read_csv(csv_file) %>% 
     mutate(Year = year(Data)) %>% 
@@ -36,14 +38,16 @@ calculate_annual_returns <- function(df, instrument) {
 }
 
 instruments = c("WIG", "Allianz FIO", "Ipopema SFIO", "Credit Agricole FIO")
+colors = c("#FF3333", "#66B2FF", "#003366", "#0066CC")
+instruments_colors <- setNames(colors, instruments)
 
-# Obliczenie stóp zwrotu dla wskaźnika WIG oraz funduszy inwestycyjnych
+# Obliczenie stóp zwrotu dla indeksu WIG oraz funduszy inwestycyjnych
 wig_ar_df <- calculate_annual_returns(wig_df, instruments[1])
 fund1429_ar_df <- calculate_annual_returns(fund1429_df, instruments[2])
 fund1655_ar_df <- calculate_annual_returns(fund1655_df, instruments[3])
 fund2162_ar_df <- calculate_annual_returns(fund2162_df, instruments[4])
 
-# Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
+# Funkcja do wyliczania statystyk w danym okresie dla podanego instrumentu
 get_stats_for_period <- function(ar_df, years) {
   # Maksymalny dostępny rok
   max_year <- max(ar_df$Year)
@@ -54,23 +58,19 @@ get_stats_for_period <- function(ar_df, years) {
 
   # Obliczenie statystyk
   cumulative_rr <- exp(sum(selected_df$ReturnLogRate, na.rm = TRUE)) - 1
-  rr_mean <- mean(selected_df$ReturnRate, na.rm = TRUE)
   rr_sd <- sd(selected_df$ReturnRate, na.rm = TRUE)
-  # Współczynnik zmienności
-  cv <- rr_sd / rr_mean
   
   # Zwracanie jako tibble
   tibble(
     Instrument = ar_df$Instrument[1],
     Years = as.factor(years),
-    CumulativeReturnRate = round(cumulative_rr, 4),
-    AnnualReturnRateAvg = round(rr_mean, 4),
-    AnnualReturnRateSd = round(rr_sd, 4),
-    CoefficientOfVariation = round(cv, 4)
+    CumulativeReturnRate = round(cumulative_rr, 4) * 100,
+    AnnualReturnRateSd = round(rr_sd, 4) * 100,
   )
 }
 
-periods <- c(3, 5, 10)
+periods <- c(1:10)
+charts_periods <- c(3, 5, 10)
 wig_stats_df <- map_dfr(periods, \(x) get_stats_for_period(wig_ar_df, x))
 fund1429_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1429_ar_df, x))
 fund1655_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1655_ar_df, x))
@@ -78,132 +78,35 @@ fund2162_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund2162_ar_df, 
 
 all_instruments_stats_df <- bind_rows(wig_stats_df, fund1429_stats_df, fund1655_stats_df, fund2162_stats_df)
 
-# Funkcja do wizualizacji wykresu, gdzie dla 3 okresów pokazujemy, jak się zmieniały dane statystyki dla dostarczonych instrumentów finansowych
+# Pokazujemy statystyki dla wybranych okresów
+all_instruments_charts_periods_stats_df <- all_instruments_stats_df %>% filter(Years %in% charts_periods)
+
+# Funkcja do wizualizacji wykresu, gdzie dla wybranych okresów pokazujemy, jak się zmieniały dane statystyki dla dostarczonych instrumentów
 visualize_all_instruments_stats_chart <- function(y_param, title, subtitle, y_lab) {
-  ggplot(all_instruments_stats_df, aes(x = Years, y = y_param, fill = Instrument)) +
+  ggplot(all_instruments_charts_periods_stats_df, aes(x = Years, y = y_param, fill = Instrument)) +
     geom_col(position = "dodge") +
     labs(
       title = title,
       subtitle = subtitle,
-      x = "Okres inwestycji w latach",
+      x = "Okres inwestycji [lata]",
       y = y_lab,
       fill = "Instrument"
     ) +
-    scale_fill_manual(
-      values = c(
-        "WIG" = "#FF3333",
-        "Allianz FIO" = "#66B2FF",
-        "Ipopema SFIO" = "#003366",
-        "Credit Agricole FIO" = "#0066CC"
-      )
-    ) + 
+    scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
+    scale_fill_manual(values = instruments_colors) + 
     theme(plot.title = element_text(face = "bold", hjust = 0.5), plot.subtitle =
             element_text(hjust = 0.5))
 }
 ```
 
-```{r, echo=FALSE, fig.width=10, fig.height=6}
-visualize_all_instruments_stats_chart(all_instruments_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu dla różnych okresów inwestycji", "kończących się w roku 2024", "Skumulowana stopa zwrotu")
+```{r, echo = FALSE, fig.width = 10, fig.height = 6}
+visualize_all_instruments_stats_chart(all_instruments_charts_periods_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Skumulowana stopa zwrotu [%]")
 ```
-<font size="4">Z powyższego wykresu wynika, że dla danego inwestora istnieje możliwość znalezienia takiego funduszu inwestycyjnego, który będzie się charakteryzował dla różnych okresów inwestycji podobną, bądź nawet lepszą stopą zwrotu niż indeks WIG.<br><br>
+<font size="4">Istnieje możliwość znalezienia takiego funduszu inwestycyjnego, który będzie się charakteryzował dla różnych okresów inwestycji podobną, bądź nawet lepszą stopą zwrotu niż indeks WIG, obejmujący akcje spółek obecnych na GPW.<br><br>
 
-Średnia skumulowana stopa zwrotu za okres 2015 - 2024 dla WIG wynosi <b>`r round(mean(wig_stats_df$CumulativeReturnRate), 4) * 100`%</b>, a dla trzech wybranych funduszy <b>`r round(mean(c(fund1429_stats_df$CumulativeReturnRate, fund1655_stats_df$CumulativeReturnRate, fund2162_stats_df$CumulativeReturnRate)), 4)*100`%.</b></font>
+Średnia roczna stopa zwrotu za okres 2015 - 2024 dla WIG wynosi <b>`r round(mean(wig_ar_df$ReturnRate), 4) * 100`%</b>, a dla trzech wybranych funduszy <b>`r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4) * 100`%.</b></font>
 ---
-```{r, echo=FALSE, fig.width=10, fig.height=6}
-visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla różnych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy wzrostu")
+```{r, echo = FALSE, fig.width = 10, fig.height = 6}
+visualize_all_instruments_stats_chart(all_instruments_charts_periods_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy wzrostu [%]")
 ```
-
-<font size="4">Powyższy wykres pokazuje wyraźnie, że indeks WIG mierzący zyski z inwestycji na giełdzie posiada największe odchylenie rocznej stopy wzrostu dla wszystkich rozważanych czasów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy skumulowany zysk jest podobny, a nawet nieco mniejszy.</font>
----
-Na kolejnych stronach wykresy służące wyłącznie do dodatkowej analizy - do wyczyszczenia.
----
-```{r, echo=FALSE, fig.width=10, fig.height=6}
-
-all_ar_df <- rbind(wig_ar_df, fund1429_ar_df, fund1655_ar_df, fund2162_ar_df)
-
-ggplot(all_ar_df, aes(x = Year, y = ReturnRate, color = Instrument)) +
-  geom_line(linewidth=2) + 
-  scale_x_continuous(breaks = 2015:2024) + 
-  labs(
-    title = "Roczna stopa zwrotu dla WIG oraz trzech wybranych funduszy inwestycyjnych",
-    subtitle = "w latach 2015-2024",
-    x = "Rok",
-    y = "Roczna stopa zwrotu",
-  )
-```
-
-<font size="4">Powyższy wykres przedstawia roczne stopy zwrotu dla indeksu WIG oraz 3 funduszy inwestycyjnych. Jak widać, średnie zyski są podobne dla wszystkich tych opcji inwestowania, jednakże zarówno zyski, jak i straty są zauważalnie większe dla WIG.<br><br>
-
-Średnia roczna stopa zwrotu dla WIG wynosi `r round(mean(wig_ar_df$ReturnRate), 4) * 100`%, a dla trzech wybranych funduszy `r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4)*100`%.</font>
----
-```{r, echo=FALSE}
-visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateAvg, "Średnia roczna stopa zwrotu za dany okres", "", "Średnia roczna stopa zwrotu")
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu za dany okres", "", "Odchylenie standardowe")
-```
-
-```{r, echo=FALSE}
-# Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność stopa zwrotu - odchylenie standardowe w konkretnym okresie dla dostarczonych instrumentów finansowych
-visualize_all_instruments_rr_sd_chart <- function(period) {
-  all_instruments_period_stats_df <- all_instruments_stats_df %>%
-    filter(Years == period)
-    ggplot(all_instruments_period_stats_df, aes(x = CumulativeReturnRate, y = AnnualReturnRateSd, label = Instrument)) + 
-    geom_point(size = 3, color = "#2E75B6") +
-    geom_text(vjust = -0.8, size = 4) +
-    labs(
-      title = paste("Zysk vs ryzyko – okres", period, "lat"),
-      x = "Skumulowana stopa zwrotu",
-      y = "Odchylenie standardowe"
-      ) +
-    scale_x_continuous(expand = expansion(mult = c(0.1, 0.1))) +
-    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
-    theme_light() +
-    theme(plot.title = element_text(face = "bold", hjust = 0.5))
-}
-```
----
-
-```{r, echo=FALSE}
-visualize_all_instruments_rr_sd_chart(periods[1])
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_rr_sd_chart(periods[2])
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_rr_sd_chart(periods[3])
-```
-```{r, echo=FALSE}
-# Funkcja do wizualizacji wykresu, gdzie pokazujemy zależność odchylenie standardowe - współczynnik zmienności w konkretnym okresie dla dostarczonych instrumentów finansowych
-visualize_all_instruments_sd_cv_chart <- function(period) {
-  all_instruments_period_stats_df <- all_instruments_stats_df %>%
-    filter(Years == period)
-    ggplot(all_instruments_period_stats_df, aes(x = AnnualReturnRateSd, y = CoefficientOfVariation, label = Instrument)) + 
-    geom_point(size = 3, color = "#2E75B6") +
-    geom_text(vjust = -0.8, size = 4) +
-    labs(
-      title = paste("Współczynnik zmienności – okres", period, "lat"),
-      x = "Odchylenie standardowe",
-      y = "Współczynnik zmienności"
-      ) +
-    scale_x_continuous(expand = expansion(mult = c(0.1, 0.1))) +
-    scale_y_continuous(expand = expansion(mult = c(0.1, 0.1))) +
-    theme_light() +
-    theme(plot.title = element_text(face = "bold", hjust = 0.5))
-}
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_sd_cv_chart(periods[1])
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_sd_cv_chart(periods[2])
-```
----
-```{r, echo=FALSE}
-visualize_all_instruments_sd_cv_chart(periods[3])
-```
+<font size="4">Indeks WIG posiada największe odchylenie rocznej stopy zwrotu dla wszystkich rozważanych okresów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie, istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy skumulowany zysk jest podobny, a nawet nieco mniejszy.</font>
