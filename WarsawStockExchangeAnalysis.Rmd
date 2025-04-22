@@ -1,8 +1,8 @@
 ---
 title: "Nie warto inwestować na Warszawskiej Giełdzie Papierów Wartościowych"
-subtitle: "Jest to znacznie bardziej ryzykowne niż skorzystanie z usług funduszy inwestycyjnych"
+subtitle: "Jest to bardziej ryzykowne niż skorzystanie z usług funduszy inwestycyjnych"
 author: "Michał Piotrak, Jakub Proboszcz"
-date: "2023-03-16"
+date: "2024-04-22"
 output: xaringan::moon_reader
 ---
 
@@ -42,7 +42,7 @@ fund1655_ar_df <- calculate_annual_returns(fund1655_df, "Ipopema SFIO")
 fund2162_ar_df <- calculate_annual_returns(fund2162_df, "Credit Agricole FIO")
 
 # Funkcja do wyliczania statystyk w danym okresie dla podanego wskaźnika bądź funduszu
-get_stats_for_period <- function(instrument, ar_df, years) {
+get_stats_for_period <- function(ar_df, years) {
   # Maksymalny dostępny rok
   max_year <- max(ar_df$Year)
 
@@ -59,7 +59,7 @@ get_stats_for_period <- function(instrument, ar_df, years) {
   
   # Zwracanie jako tibble
   tibble(
-    Instrument = instrument,
+    Instrument = ar_df$Instrument[1],
     Years = as.factor(years),
     CumulativeReturnRate = round(cumulative_rr, 4),
     AnnualReturnRateAvg = round(rr_mean, 4),
@@ -69,15 +69,12 @@ get_stats_for_period <- function(instrument, ar_df, years) {
 }
 
 periods <- c(3, 5, 10)
-instruments <- c("WIG", "1429.N", "1655.N", "2162.N")
-wig_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[1], wig_ar_df, .x))
-fund1429_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[2], fund1429_ar_df, .x))
-fund1655_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[3], fund1655_ar_df, .x))
-fund2162_stats_df <- map_dfr(periods, ~get_stats_for_period(instruments[4], fund2162_ar_df, .x))
+wig_stats_df <- map_dfr(periods, \(x) get_stats_for_period(wig_ar_df, x))
+fund1429_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1429_ar_df, x))
+fund1655_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1655_ar_df, x))
+fund2162_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund2162_ar_df, x))
 
 all_instruments_stats_df <- bind_rows(wig_stats_df, fund1429_stats_df, fund1655_stats_df, fund2162_stats_df)
-all_instruments_stats_df <- all_instruments_stats_df %>%
-  mutate(Instrument = factor(Instrument, levels = instruments))
 
 # print(all_instruments_stats_df)
 
@@ -109,7 +106,7 @@ visualize_all_instruments_stats_chart <- function(y_param, title, y_lab) {
 all_ar_df <- rbind(wig_ar_df, fund1429_ar_df, fund1655_ar_df, fund2162_ar_df)
 
 ggplot(all_ar_df, aes(x = Year, y = ReturnRate, color = Instrument)) +
-  geom_line() + 
+  geom_line(linewidth=2) + 
   scale_x_continuous(breaks = 2015:2024) + 
   labs(
     title = "Roczna stopa zwrotu dla WIG oraz trzech wybranych funduszy inwestycyjnych",
@@ -119,11 +116,25 @@ ggplot(all_ar_df, aes(x = Year, y = ReturnRate, color = Instrument)) +
   )
 ```
 
-<font size="4">Powyższy wykres przedstawia roczne stopy zwrotu dla indeksu WIG oraz 3 funduszy inwestycyjnych. Jak widać, średnie zyski są podobne dla wszystkich tych opcji inwestowania, jednakże zarówno zyski, jak i straty są zauważalnie większe dla WIG.</font><br><br>
+<font size="4">Powyższy wykres przedstawia roczne stopy zwrotu dla indeksu WIG oraz 3 funduszy inwestycyjnych. Jak widać, średnie zyski są podobne dla wszystkich tych opcji inwestowania, jednakże zarówno zyski, jak i straty są zauważalnie większe dla WIG.<br><br>
 
-<font size="4">Średnia roczna stopa zwrotu dla WIG wynosi `r round(mean(wig_ar_df$ReturnRate), 4) * 100`%, a dla trzech wybranych funduszy `r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4)*100`%.</font>
+Średnia roczna stopa zwrotu dla WIG wynosi `r round(mean(wig_ar_df$ReturnRate), 4) * 100`%, a dla trzech wybranych funduszy `r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4)*100`%.</font>
 
+---
 
+```{r, echo=FALSE, fig.width=10, fig.height=6}
+ggplot(all_instruments_stats_df, aes(x = Years, y = AnnualReturnRateSd, fill = Instrument)) +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Odchylenie standardowe rocznej stopy wzrostu dla różnych okresów inwestycji",
+    subtitle = "kończących się w roku 2024",
+    x = "Okres inwestycji w latach",
+    y = "Odchylenie standardowe rocznej stopy wzrostu",
+    fill = "Instrument"
+  )
+```
+
+Powyższy wykres pokazuje wyraźnie, że indeks WIG mierzący zyski z inwestycji na giełdzie posiada największe odchylenie rocznej stopy wzrostu dla wszystkich rozważanych czasów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy średni zysk jest podobny, a nawet nieco mniejszy.
 ---
 
 
