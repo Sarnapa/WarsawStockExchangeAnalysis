@@ -3,23 +3,28 @@ title: "Nie inwestuj bezpośrednio na Warszawskiej Giełdzie Papierów Wartości
 subtitle: "Unikaj nadmiernego ryzyka, skorzystaj z usług funduszy inwestycyjnych!"
 author: "Michał Piotrak, Jakub Proboszcz"
 date: "2025-04-23"
-output: xaringan::moon_reader
+output: beamer_presentation
 ---
+
 ```{css, echo = FALSE}
 body { font-family: 'Comic Sans', serif; }
 ```
+
 ```{r, echo = FALSE, message = FALSE}
 require(tidyverse)
 require(scales)
-# Do PDF
-#require(tinytex)
-# Do odkomentowania, jeśli musimy zainstalować
+# Do PDF - do odkomentowania, jeśli musimy zainstalować
+# require(tinytex)
 #install_tinytex()
+
+# Naprawa polskich znaków w wykresach przy kompilacji do PDF
+require(showtext)
+showtext_auto()
 ```
 
-```{r, echo = FALSE, message = FALSE}
+```{r, echo = FALSE}
 read_data <- function(csv_file) {
-  data <- read_csv(csv_file) %>% 
+  data <- read_csv(csv_file, col_types = cols(.default = "d", Data = "D")) %>% 
     mutate(Year = year(Data)) %>% 
     select(Year, Open = Otwarcie, Close = Zamkniecie) %>%
     arrange(Year)
@@ -90,19 +95,22 @@ visualize_all_instruments_stats_chart <- function(y_param, title, subtitle, y_la
     ) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.12))) +
     scale_fill_manual(values = instruments_colors) + 
-    theme(plot.title = element_text(face = "bold", hjust = 0.5), plot.subtitle =
-            element_text(hjust = 0.5))
+    theme(plot.title = element_text(face = "bold", hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))
 }
 ```
 
 ```{r, echo = FALSE, fig.width = 10, fig.height = 6}
 visualize_all_instruments_stats_chart(all_instruments_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Skumulowana stopa zwrotu [%]")
 ```
-<font size="4">Istnieje możliwość znalezienia takiego funduszu inwestycyjnego, który będzie się charakteryzował dla różnych okresów inwestycji podobną, bądź nawet lepszą stopą zwrotu niż indeks WIG, obejmujący akcje spółek obecnych na GPW.<br><br>
 
-Średnia roczna stopa zwrotu za okres 2015 - 2024 dla WIG wynosi <b>`r round(mean(wig_ar_df$ReturnRate), 4) * 100`%</b>, a dla trzech wybranych funduszy <b>`r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4) * 100`%.</b></font>
+\fontsize{9}{12}\selectfont Istnieje możliwość znalezienia takiego funduszu inwestycyjnego, który będzie się charakteryzował dla różnych okresów inwestycji podobną, bądź nawet lepszą stopą zwrotu niż indeks WIG, obejmujący akcje spółek obecnych na GPW.
+
+Średnia roczna stopa zwrotu za okres 2015 - 2024 dla WIG wynosi **`r round(mean(wig_ar_df$ReturnRate), 4) * 100`%**,\linebreak a dla trzech wybranych funduszy **`r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4) * 100`%**.
+
 ---
+
 ```{r, echo = FALSE, fig.width = 10, fig.height = 6}
-visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy wzrostu [%]")
+visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy zwrotu [%]")
 ```
-<font size="4">Indeks WIG posiada największe odchylenie rocznej stopy zwrotu dla wszystkich rozważanych okresów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie, istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy skumulowany zysk jest podobny, a nawet nieco mniejszy.</font>
+
+\fontsize{9}{12}\selectfont Indeks WIG posiada największe odchylenie standardowe rocznej stopy zwrotu dla wszystkich rozważanych okresów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie, istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy skumulowany zysk jest podobny, a nawet nieco mniejszy.
