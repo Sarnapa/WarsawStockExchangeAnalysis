@@ -1,9 +1,9 @@
 ---
 title: "Nie inwestuj bezpośrednio na Warszawskiej Giełdzie Papierów Wartościowych"
+subtitle: "Unikaj nadmiernego ryzyka, skorzystaj z usług funduszy inwestycyjnych!"
 author: "Michał Piotrak, Jakub Proboszcz"
 date: "2025-04-23"
 output: xaringan::moon_reader
-subtitle: Unikaj nadmiernego ryzyka, skorzystaj z usług funduszy inwestycyjnych!
 ---
 ```{css, echo = FALSE}
 body { font-family: 'Comic Sans', serif; }
@@ -69,8 +69,7 @@ get_stats_for_period <- function(ar_df, years) {
   )
 }
 
-periods <- c(1:10)
-charts_periods <- c(3, 5, 10)
+periods <- c(3, 5, 10)
 wig_stats_df <- map_dfr(periods, \(x) get_stats_for_period(wig_ar_df, x))
 fund1429_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1429_ar_df, x))
 fund1655_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund1655_ar_df, x))
@@ -78,12 +77,9 @@ fund2162_stats_df <- map_dfr(periods, \(x) get_stats_for_period(fund2162_ar_df, 
 
 all_instruments_stats_df <- bind_rows(wig_stats_df, fund1429_stats_df, fund1655_stats_df, fund2162_stats_df)
 
-# Pokazujemy statystyki dla wybranych okresów
-all_instruments_charts_periods_stats_df <- all_instruments_stats_df %>% filter(Years %in% charts_periods)
-
 # Funkcja do wizualizacji wykresu, gdzie dla wybranych okresów pokazujemy, jak się zmieniały dane statystyki dla dostarczonych instrumentów
 visualize_all_instruments_stats_chart <- function(y_param, title, subtitle, y_lab) {
-  ggplot(all_instruments_charts_periods_stats_df, aes(x = Years, y = y_param, fill = Instrument)) +
+  ggplot(all_instruments_stats_df, aes(x = Years, y = y_param, fill = Instrument)) +
     geom_col(position = "dodge") +
     labs(
       title = title,
@@ -100,13 +96,13 @@ visualize_all_instruments_stats_chart <- function(y_param, title, subtitle, y_la
 ```
 
 ```{r, echo = FALSE, fig.width = 10, fig.height = 6}
-visualize_all_instruments_stats_chart(all_instruments_charts_periods_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Skumulowana stopa zwrotu [%]")
+visualize_all_instruments_stats_chart(all_instruments_stats_df$CumulativeReturnRate, "Skumulowana stopa zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Skumulowana stopa zwrotu [%]")
 ```
 <font size="4">Istnieje możliwość znalezienia takiego funduszu inwestycyjnego, który będzie się charakteryzował dla różnych okresów inwestycji podobną, bądź nawet lepszą stopą zwrotu niż indeks WIG, obejmujący akcje spółek obecnych na GPW.<br><br>
 
 Średnia roczna stopa zwrotu za okres 2015 - 2024 dla WIG wynosi <b>`r round(mean(wig_ar_df$ReturnRate), 4) * 100`%</b>, a dla trzech wybranych funduszy <b>`r round(mean(c(fund1429_ar_df$ReturnRate, fund1655_ar_df$ReturnRate, fund2162_ar_df$ReturnRate)), 4) * 100`%.</b></font>
 ---
 ```{r, echo = FALSE, fig.width = 10, fig.height = 6}
-visualize_all_instruments_stats_chart(all_instruments_charts_periods_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy wzrostu [%]")
+visualize_all_instruments_stats_chart(all_instruments_stats_df$AnnualReturnRateSd, "Odchylenie standardowe rocznej stopy zwrotu dla wybranych okresów inwestycji", "kończących się w roku 2024", "Odchylenie standardowe rocznej stopy wzrostu [%]")
 ```
 <font size="4">Indeks WIG posiada największe odchylenie rocznej stopy zwrotu dla wszystkich rozważanych okresów inwestycji. Oznacza to, że w przypadku bezpośredniego inwestowania na giełdzie, istnieje większe ryzyko poniesienia straty w porównaniu do funduszy inwestycyjnych, podczas gdy skumulowany zysk jest podobny, a nawet nieco mniejszy.</font>
